@@ -1,0 +1,2 @@
+multi-barcode-scanner-js
+====
