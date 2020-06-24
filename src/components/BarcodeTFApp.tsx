@@ -9,7 +9,7 @@ interface BarcodeTFAppState{
     videoResolution:string,
     colnum:number,
     rownum:number,
-    showRect:boolean,
+    showCode:boolean,
     showSS:boolean,
     showGrid:boolean,
 }
@@ -30,7 +30,7 @@ class BarcodeTFApp2 extends React.Component {
         videoResolution: "VGA",
         colnum: 1,
         rownum: 1,
-        showRect: true,
+        showCode: true,
         showSS: false,
         showGrid: false,
     }
@@ -92,6 +92,7 @@ class BarcodeTFApp2 extends React.Component {
             const props = this.props as any
             props.initialized()
             this.requestScanBarcode()
+            this.multiBarcodReader.barcodePreviewCanvas = this.state.showCode ? this.workerAreaCVCanvasRef.current! : null
         })
         this.multiBarcodReader.addWaitNextFrameListeners(()=>{this.requestScanBarcode()})
         this.multiBarcodReader.addScanedBarcordListeners(()=>{
@@ -326,13 +327,13 @@ class BarcodeTFApp2 extends React.Component {
                     <Dropdown text='row' options={rownumOptions} simple item onChange={(e, { value }) => {
                         this.setState({rownum:value as number})
                     }}/>
-                    <Label basic size="tiny" color={this.state.showRect?"red":"grey"} onClick={()=>{
-                        const newValue = !this.state.showRect
+                    <Label basic size="tiny" color={this.state.showCode?"red":"grey"} onClick={()=>{
+                        const newValue = !this.state.showCode
                         // this.workerAreaCVCanvasRef.current!.width  = this.overlayWidth
                         // this.workerAreaCVCanvasRef.current!.height = this.overlayHeight
                         this.multiBarcodReader.barcodePreviewCanvas = newValue ? this.workerAreaCVCanvasRef.current! : null
-                        this.setState({showRect:newValue})
-                    }}>rect</Label>
+                        this.setState({showCode:newValue})
+                    }}>code</Label>
                     <Label basic size="tiny" color={this.state.showSS?"red":"grey"} onClick={()=>{
                         const newValue = !this.state.showSS
                         // this.workerSSMaskMonitorCanvasRef.current!.width  = this.overlayWidth
