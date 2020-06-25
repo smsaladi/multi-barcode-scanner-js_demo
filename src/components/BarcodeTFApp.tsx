@@ -95,7 +95,7 @@ class BarcodeTFApp2 extends React.Component {
             this.multiBarcodReader.barcodePreviewCanvas = this.state.showCode ? this.workerAreaCVCanvasRef.current! : null
         })
         this.multiBarcodReader.addWaitNextFrameListeners(()=>{this.requestScanBarcode()})
-        this.multiBarcodReader.addScanedBarcordListeners(()=>{
+        this.multiBarcodReader.addScanedBarcordListeners((barcodes:string[], areas:number[][])=>{
             console.log("SCANNED!!!")
         })
 //        this.multiBarcodReader.barcodePreviewCanvas = this.workerAreaCVCanvasRef.current!
