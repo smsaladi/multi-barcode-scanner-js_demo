@@ -12,7 +12,7 @@
     "@types/react-dom": "^16.9.0",
     "@types/react-redux": "^7.1.9",
     "@types/redux-actions": "^2.6.1",
-    "multi-barcode-scanner-js": "0.0.12",
+    "multi-barcode-scanner-js": "0.0.13",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-redux": "^7.2.0",

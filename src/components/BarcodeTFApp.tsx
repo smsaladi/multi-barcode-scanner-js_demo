@@ -12,6 +12,11 @@ interface BarcodeTFAppState{
     showCode:boolean,
     showSS:boolean,
     showGrid:boolean,
+
+    // @ts-ignore
+    capture: ImageCapture|null,
+    track:MediaStreamTrack|null,
+    focusChangeCycle: number
 }
 
 const captureVideoImageToCanvas = (video:HTMLVideoElement):HTMLCanvasElement => {
@@ -24,6 +29,21 @@ const captureVideoImageToCanvas = (video:HTMLVideoElement):HTMLCanvasElement => 
     return videoCaptureCanvas
 }
 
+
+const captureVideoImageToCanvas2 = (imageBitmap: ImageBitmap, video:HTMLVideoElement):HTMLCanvasElement => {
+    const videoCaptureCanvas    = document.createElement("canvas");
+    // videoCaptureCanvas.width = imageBitmap.width
+    // videoCaptureCanvas.height = imageBitmap.height
+    videoCaptureCanvas.width = video.width
+    videoCaptureCanvas.height = video.height
+
+    const tmpCtx                = videoCaptureCanvas.getContext('2d')!
+    tmpCtx.drawImage(imageBitmap, 0, 0, videoCaptureCanvas.width, videoCaptureCanvas.height);
+    console.log("cap2:", videoCaptureCanvas.width, videoCaptureCanvas.height)
+    return videoCaptureCanvas
+}
+
+
 class BarcodeTFApp2 extends React.Component {
     state: BarcodeTFAppState = {
         count: 0,
@@ -33,6 +53,9 @@ class BarcodeTFApp2 extends React.Component {
         showCode: true,
         showSS: false,
         showGrid: false,
+        capture: null,
+        track: null,
+        focusChangeCycle:0,
     }
 
 
@@ -91,12 +114,13 @@ class BarcodeTFApp2 extends React.Component {
         this.multiBarcodReader.addInitializedListener(()=>{
             const props = this.props as any
             props.initialized()
+            console.log("multi barcode reader module loaeded")
             this.requestScanBarcode()
             this.multiBarcodReader.barcodePreviewCanvas = this.state.showCode ? this.workerAreaCVCanvasRef.current! : null
         })
         this.multiBarcodReader.addWaitNextFrameListeners(()=>{this.requestScanBarcode()})
         this.multiBarcodReader.addScanedBarcordListeners((barcodes:string[], areas:number[][])=>{
-            console.log("SCANNED!!!")
+//            console.log("SCANNED!!!")
         })
 //        this.multiBarcodReader.barcodePreviewCanvas = this.workerAreaCVCanvasRef.current!
         this.multiBarcodReader.init()
@@ -166,6 +190,13 @@ class BarcodeTFApp2 extends React.Component {
      */
     componentDidMount() {
         console.log('Initializing')
+        let supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+        for (let constraint in supportedConstraints) {
+            if (supportedConstraints.hasOwnProperty(constraint)) {
+                console.log("allowed constraint:",constraint)
+            }
+          }
+
         // console.log('>>>>>>>>>>>>>>>>>>>>>>SUM:',sum(1,2))
         // const t = new TestTest()
         // t.init()
@@ -174,6 +205,8 @@ class BarcodeTFApp2 extends React.Component {
         // t.init()
 
         const initWorkerPromise = this.initWorker()
+
+        
 
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             const webCamPromise = navigator.mediaDevices
@@ -184,8 +217,17 @@ class BarcodeTFApp2 extends React.Component {
                 .then(stream => {
                     console.log(this.videoRef)
                     this.videoRef.current!.srcObject = stream;
+                    
+                    const track = stream.getVideoTracks()[0];
+                    //@ts-ignore
+                    const imageCapture = new ImageCapture(track);
+                    this.setState({
+                        capture: imageCapture,
+                        track:track
+                    })
                     return new Promise((resolve, reject) => {
                         this.videoRef.current!.onloadedmetadata = () => {
+                            console.log("resolved")
                             resolve();
                         };
                     });
@@ -198,7 +240,7 @@ class BarcodeTFApp2 extends React.Component {
                 .catch(error => {
                     console.error(error);
                 });
-        }           
+        }
     }
 
     changeCameraResolution = (resolution:string) =>{
@@ -212,6 +254,15 @@ class BarcodeTFApp2 extends React.Component {
                 .then(stream => {
                     console.log(this.videoRef)
                     this.videoRef.current!.srcObject = stream;
+
+                    const track = stream.getVideoTracks()[0];
+                    //@ts-ignore
+                    const imageCapture = new ImageCapture(track);
+                    this.setState({
+                        capture: imageCapture,
+                        track:track
+                    })
+
                     return new Promise((resolve, reject) => {
                         this.videoRef.current!.onloadedmetadata = () => {
                             resolve();
@@ -235,11 +286,38 @@ class BarcodeTFApp2 extends React.Component {
 
 
     requestScanBarcode = async () => {
+
+
+        //@ts-ignore
+        // this.state.track!.applyConstraints({advanced : [{focusMode: "manual", focusDistance: 0.2+0.2*this.state.focusChangeCycle}]});
+        //@ts-ignore
+        //this.state.track!.applyConstraints({advanced : [{pointsOfInterest: [0.9,0.9]}]});
+
         console.log('requestScanBarcode')
         const video = this.videoRef.current!
         const controller = this.controllerCanvasRef.current!
         controller.width = this.overlayWidth
         controller.height = this.overlayHeight
+
+        // try{
+        //     this.state.capture.takePhoto().then(
+        //         (blob:Blob) => createImageBitmap(blob).then(
+        //             imageBitmap => {
+        //                 const captureCanvas = captureVideoImageToCanvas2(imageBitmap, video)
+        //                 this.multiBarcodReader.requestScanBarcode(captureCanvas, this.state.colnum, this.state.rownum)
+        //                 captureCanvas.remove()
+        //             }).catch((error:any) =>{
+        //                 console.error("aaa", error);
+        //                 window.requestAnimationFrame(this.requestScanBarcode);
+        //             })
+        //         ).catch((error:any) =>{
+        //             console.error("bbb", error);
+        //             window.requestAnimationFrame(this.requestScanBarcode);
+        //         })
+        // }catch(e){
+        //     console.error(e);
+        //     window.requestAnimationFrame(this.requestScanBarcode);
+        // }
 
         const captureCanvas = captureVideoImageToCanvas(video)
         if(captureCanvas.width === 0){
@@ -250,6 +328,19 @@ class BarcodeTFApp2 extends React.Component {
 
         this.multiBarcodReader.requestScanBarcode(captureCanvas, this.state.colnum, this.state.rownum)
         captureCanvas.remove()
+
+
+        if(this.state.focusChangeCycle>10){
+            this.state.focusChangeCycle=0
+            // this.setState({
+            //     focusChangeCycle: 0
+            // })
+        }else{
+            this.state.focusChangeCycle += 1
+            // this.setState({
+            //     focusChangeCycle: this.state.focusChangeCycle+1
+            // })
+        }
 
     }
 
@@ -347,6 +438,22 @@ class BarcodeTFApp2 extends React.Component {
                         // this.controllerCanvasRef.current!.height = this.overlayHeight
                         this.multiBarcodReader.girdDrawCanvas = newValue ? this.controllerCanvasRef.current! : null
                         this.setState({showGrid:!this.state.showGrid})
+
+
+                        // const capabilities = this.state.track!.getCapabilities();
+                        // console.log(capabilities)
+                        // if(newValue){
+                        //     //@ts-ignore
+                        //     // this.state.track!.applyConstraints({advanced : [{focusMode: "manual", focusDistance: 3}]});
+                        //     //@ts-ignore
+                        //     this.state.track!.applyConstraints({advanced : [{exposureMode: "manual", exposureTime: 40000}]});
+                        // }else{
+                        //     //@ts-ignore
+                        //     // this.state.track!.applyConstraints({advanced : [{focusMode: "manual", focusDistance: 1}]});
+                        //     //@ts-ignore
+                        //     this.state.track!.applyConstraints({advanced : [{exposureMode: "manual", exposureTime: 1}]});
+                        // }
+
                     }}>grid</Label>
 
                 </div>
